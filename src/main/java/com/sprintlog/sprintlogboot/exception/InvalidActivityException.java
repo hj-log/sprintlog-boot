@@ -1,4 +1,4 @@
-package etc.fileio.serial.exception;
+package com.sprintlog.sprintlogboot.exception;
 
 public class InvalidActivityException extends RuntimeException{
 

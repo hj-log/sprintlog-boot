@@ -1,6 +1,6 @@
-package etc.fileio.serial.printer;
+package com.sprintlog.sprintlogboot.printer;
 
-import etc.fileio.serial.domain.*;
+import com.sprintlog.sprintlogboot.domain.*;
 
 public interface ActivityPrinter {
 

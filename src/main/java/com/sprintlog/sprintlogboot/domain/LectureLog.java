@@ -1,7 +1,8 @@
-package etc.fileio.serial.domain;
+package com.sprintlog.sprintlogboot.domain;
 
-import etc.fileio.json.domain.*;
-import etc.fileio.serial.policy.*;
+
+
+import com.sprintlog.sprintlogboot.policy.*;
 
 import java.io.*;
 

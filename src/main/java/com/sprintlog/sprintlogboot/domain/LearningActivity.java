@@ -1,7 +1,7 @@
-package etc.fileio.serial.domain;
+package com.sprintlog.sprintlogboot.domain;
 
-import etc.fileio.serial.domain.*;
-import etc.fileio.serial.exception.*;
+
+import com.sprintlog.sprintlogboot.exception.*;
 
 import java.io.*;
 import java.util.*;
@@ -117,7 +117,7 @@ public abstract class LearningActivity implements Serializable {
 
     public void addTag(String tag) {
         if (tag == null || tag.isBlank()) {
-            throw new oop.collection.exception.InvalidActivityException("태그는 비워둘 수 없습니다.");
+            throw new InvalidActivityException("태그는 비워둘 수 없습니다.");
         }
         tags.add(tag.trim().toLowerCase());
     }

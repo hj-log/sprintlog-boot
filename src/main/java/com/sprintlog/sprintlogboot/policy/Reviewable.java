@@ -1,4 +1,4 @@
-package etc.fileio.serial.policy;
+package com.sprintlog.sprintlogboot.policy;
 
 // 인터페이스는 스스로의 객체를 생성할 수 없는 추상적인 의미를 가지고
 // 각각의 클래스들에게 역할을 부여하는 클래스의 틀 역할을 합니다.

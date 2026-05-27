@@ -1,4 +1,4 @@
-package etc.fileio.serial.domain;
+package com.sprintlog.sprintlogboot.domain;
 
 public enum ActivityCategory {
 

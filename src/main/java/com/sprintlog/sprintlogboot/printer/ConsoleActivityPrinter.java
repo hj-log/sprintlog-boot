@@ -1,7 +1,11 @@
-package etc.fileio.serial.printer;
+package com.sprintlog.sprintlogboot.printer;
 
-import etc.fileio.serial.domain.*;
+import com.sprintlog.sprintlogboot.domain.*;
+import org.springframework.context.annotation.*;
+import org.springframework.stereotype.*;
 
+@Component("console")
+@Primary // ActivityPrinter 타입의 객체에서는 Console이 기본값
 public class ConsoleActivityPrinter implements ActivityPrinter {
 
     @Override

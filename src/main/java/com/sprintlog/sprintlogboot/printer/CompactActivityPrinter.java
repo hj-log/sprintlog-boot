@@ -1,7 +1,9 @@
-package etc.fileio.serial.printer;
+package com.sprintlog.sprintlogboot.printer;
 
-import etc.fileio.serial.domain.*;
+import com.sprintlog.sprintlogboot.domain.*;
+import org.springframework.stereotype.*;
 
+@Component("compact")
 public class CompactActivityPrinter implements ActivityPrinter {
 
     @Override

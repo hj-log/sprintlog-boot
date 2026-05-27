@@ -1,4 +1,4 @@
-package etc.fileio.serial.policy;
+package com.sprintlog.sprintlogboot.policy;
 
 public interface Shareable {
 

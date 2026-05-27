@@ -1,16 +1,26 @@
-package etc.fileio.serial.service;
+package com.sprintlog.sprintlogboot.service;
 
-import etc.fileio.serial.domain.*;
-import etc.fileio.serial.printer.*;
+import com.sprintlog.sprintlogboot.domain.*;
+import com.sprintlog.sprintlogboot.printer.*;
+import com.sprintlog.sprintlogboot.repository.*;
+import org.springframework.beans.factory.annotation.*;
+import org.springframework.stereotype.*;
 
 import java.util.*;
 
+@Service // 빈 등록 어노테이션. @component랑 기능은 똑같고, 계층을 좀 더 명시적으로 표시
 public class ActivityDashboard {
 
-    private List<LearningActivity> activities;
+    private final ActivityRepository repository;
 
-    public ActivityDashboard(List<LearningActivity> activities) {
-        this.activities = activities;
+    // 의존선 자동 주입 ActivityDashboard가 ActivityRepository에게 의존한고 있는 상황.
+    // 생성자를 통해 ActivityRepository를 전달 받을 때 컨테이너에서 검색하고 주입해 주겠다.
+    @Autowired
+    public ActivityDashboard(ActivityRepository repository) {
+        if (repository == null) {
+            throw new IllegalArgumentException("학습 활동 목록은 null일 수 없습니다.");
+        }
+        this.repository = repository;
     }
 
     /**
@@ -42,7 +52,7 @@ public class ActivityDashboard {
         }   // end Counter class
 
         Counter counter = new Counter();
-        for (LearningActivity activity : activities) {
+        for (LearningActivity activity : repository.findAll()) {
             counter.add(activity);
         }
         return counter.toSummary();
@@ -90,7 +100,10 @@ public class ActivityDashboard {
 
         private final ActivityPrinter printer;
 
-        public ReportBuilder(ActivityPrinter printer) {
+        // ActivityPrinter 타입을 가질 수 있는 Bean이 두개 (console, compact)
+        // Spting은 어떤 Bean을 주입해야 할 지 판단할 수 없다.
+        // @Qualifier를 통해 어떤 Bean을 주입할 지를 지목할 수 있다.
+        public ReportBuilder(@Qualifier("console") ActivityPrinter printer) {
             if (printer == null) {
                 throw new IllegalArgumentException("출력 도구는 null일 수 없습니다.");
             }
@@ -104,7 +117,7 @@ public class ActivityDashboard {
                     + " / 실습 " + summary.getPracticeCount()
                     + " / 독서 " + summary.getReadingCount() + ")");
 
-            for (LearningActivity activity : activities) {  // 외부 클래스의 activities 접근
+            for (LearningActivity activity : repository.findAll()) {  // 외부 클래스의 activities 접근
                 printer.print(activity);
             }
         }
@@ -113,7 +126,7 @@ public class ActivityDashboard {
     // 태그 필터링-------------------------------------------------------
     public List<LearningActivity> filterByTag(String tag) {
         List<LearningActivity> result = new ArrayList<>();
-        for (LearningActivity activity : activities) {
+        for (LearningActivity activity : repository.findAll()) {
             if (activity.hasTag(tag)) {
                 result.add(activity);
             }
@@ -128,7 +141,7 @@ public class ActivityDashboard {
     public Map<ActivityCategory, List<LearningActivity>> groupByCategory() {
         Map<ActivityCategory, List<LearningActivity>> result = new TreeMap<>();
 
-        for (LearningActivity activity : activities) {
+        for (LearningActivity activity : repository.findAll()) {
             ActivityCategory cat = activity.getCategory();
 
             if (!result.containsKey(cat)) {
@@ -146,10 +159,9 @@ public class ActivityDashboard {
     public Set<String> getSortedTagSet() {
         Set<String> tags = new TreeSet<>();
 
-        for (LearningActivity activity : activities) {
+        for (LearningActivity activity : repository.findAll()) {
             tags.addAll(activity.getTags());
         }
-
         return Collections.unmodifiableSet(tags);
     }
 
