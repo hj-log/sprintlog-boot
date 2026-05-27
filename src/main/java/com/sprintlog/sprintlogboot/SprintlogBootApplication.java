@@ -31,6 +31,7 @@ public class SprintlogBootApplication {
             ActivityRepository repository,
             ActivityDashboard dashboard,
             ActivityReportService reportService,
+            ActivityPrinter defaultPrinter,
             List<ActivityPrinter> allPrinters,
             Map<String, ActivityPrinter> printersByName,
             @Value("${sprintlog.welcome-message}") String welcomeMessage) {
@@ -43,7 +44,12 @@ public class SprintlogBootApplication {
             System.out.println("==================================================");
 
             System.out.println();
-            System.out.println(welcomeMessage);
+            System.out.println("── Repository 상태 (Profile 별 Initializer 가 결정) ──");
+            System.out.println("  활동 수: " + repository.count() + "개");
+            for (LearningActivity activity : repository.findAll()) {
+                defaultPrinter.print(activity);
+            }
+
 
             System.out.println();
             System.out.println("==================================================");

@@ -4,10 +4,12 @@ import com.sprintlog.sprintlogboot.conpig.*;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.repository.*;
 import jakarta.annotation.*;
+import org.springframework.context.annotation.*;
 import org.springframework.stereotype.*;
 
 
 @Component
+@Profile("dev")
 public class DataInitializer {
 
     private final ActivityRepository repository;

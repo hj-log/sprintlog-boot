@@ -1,0 +1,13 @@
+# 운영 환경 (prod profile) 추가 설정
+# application.yml를 값들을 덮어쓰거나 보강
+
+sprintlog:
+  welcome-message: "SprintLog Boot — PRODUCTION 환경 (운영 환경)"
+  sample-date:
+    enabled: false
+    count: 4
+
+# 개발 시에는 자세한 로그가 도움됨.
+logging:
+  level:
+    com.sprintlog: warn # 경고 이상의 레벨만 보겠다 -> warn

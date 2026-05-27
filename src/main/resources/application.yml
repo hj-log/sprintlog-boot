@@ -3,7 +3,10 @@
 
 spring:
   application:
-  name: sprintlog-boot
+    name: sprintlog-boot
+
+  profiles:
+    active: prod
 
 server:
   port: 8080
