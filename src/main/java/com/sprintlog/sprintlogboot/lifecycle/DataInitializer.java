@@ -1,5 +1,6 @@
 package com.sprintlog.sprintlogboot.lifecycle;
 
+import com.sprintlog.sprintlogboot.conpig.*;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.repository.*;
 import jakarta.annotation.*;
@@ -10,15 +11,25 @@ import org.springframework.stereotype.*;
 public class DataInitializer {
 
     private final ActivityRepository repository;
+    private final SprintLogProperties properties;
 
     // 생성자는 객체 초기화 및 의존성 주입 로직을 주로 사용
-    public DataInitializer(ActivityRepository repository) {
+    public DataInitializer(ActivityRepository repository, SprintLogProperties properties) {
         this.repository = repository;
+        this.properties = properties;
     }
 
     // 주입된 의존성 객체를 가지고 무언가 해야할 로직을 작성
     @PostConstruct
     public void loadSampleData() {
+
+        System.out.println("[lifecycle] @PostConstruct — " + properties.getWelcomeMessage());
+
+        if (!properties.getSampleDate().isEnabled()) {
+            System.out.println("[lifecycle] sample-date.enabled = false - 적재 건너뜀!");
+            return;
+        }
+
         System.out.println("[lifecycle] @PostConstruct — DataInitializer 가 샘플 데이터를 적재합니다.");
 
         repository.add(new LectureLog("Spring Bean Scope", 90, Visibility.PUBLIC, "이강사"));
