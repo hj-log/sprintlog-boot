@@ -1,33 +1,17 @@
 package com.sprintlog.sprintlogboot.domain;
 
-
-
-import com.sprintlog.sprintlogboot.policy.*;
-
 import java.io.*;
 
-// LectureLog는 LearningActivity의 한 종류이고, Reviewable에 선언된 역할도 수행할 수 있다.
-public class LectureLog extends LearningActivity implements Reviewable, Shareable, Serializable {
+public class LectureLog extends LearningActivity implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
     private String instructorName;
 
     public LectureLog(String title, int minutes, Visibility visibility, String instructorName) {
 
         super(title, minutes, visibility, ActivityCategory.LECTURE);
         this.instructorName = normalizeInstructorName(instructorName);
-    }
-
-
-
-    @Override
-    public boolean needsReview() {
-        return getCategory().isShortStudy(getMinutes());
-    }
-
-    @Override
-    public void printReviewTarget() {
-        System.out.println("[복습권장] " + getTitle() + " ("+ getMinutes() + "분)");
     }
 
     public void method1() {
@@ -41,27 +25,6 @@ public class LectureLog extends LearningActivity implements Reviewable, Shareabl
 
         return instructorName;
 
-    }
-
-
-    @Override
-    public boolean canShare() {
-        return isPublicActivity();
-    }
-
-    @Override
-    public String getShareTitle() {
-        return getTitle();
-    }
-
-    @Override
-    public String getActivityType() {
-        return "강의";
-    }
-
-    @Override
-    public String getDetailText() {
-        return "강사: " + instructorName;
     }
 
     public String getInstructorName() {

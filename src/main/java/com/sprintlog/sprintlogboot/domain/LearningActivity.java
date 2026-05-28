@@ -20,11 +20,6 @@ public abstract class LearningActivity implements Serializable {
     private final ActivityCategory category;
     private final Set<String> tags = new HashSet<>();
 
-//    LearningActivity(String title, int minutes) {
-//
-//        this(title, minutes, Visibility.PUBLIC );
-//    }
-
     public LearningActivity(String title, int minutes, Visibility visibility, ActivityCategory category) {
         validateTitle(title);
         validateMinutes(minutes);
@@ -40,7 +35,6 @@ public abstract class LearningActivity implements Serializable {
         return totalCreateCount;
     }
 
-    //
     public void extendStudy(int additionalMinutes) {
         if (additionalMinutes <= 0) {
             throw new InvalidActivityException(
@@ -73,14 +67,6 @@ public abstract class LearningActivity implements Serializable {
     public void openToPublic() {
         this.visibility = Visibility.PUBLIC;
     }
-
-
-    // 추상메서드는 메서드 바디가 없는 메서드의 툴 역할을 합니다.
-    // 특정 메서드는 부모가 대충 정해버리는 것보다, 자식이 반드시 자기 방식대로 구현하게 하는 편이 명확할 때가 있습니다.
-    // 추상메서드는 자식에게 물려줄 때 오버라이팅을 강제합니다. 반드시 구현해야합니다.
-    public abstract String getActivityType();
-
-    public abstract String getDetailText();
 
     public static int getTotalCreateCount() {
         return totalCreateCount;
@@ -122,8 +108,6 @@ public abstract class LearningActivity implements Serializable {
         tags.add(tag.trim().toLowerCase());
     }
 
-    /** 등록된 태그 목록을 읽기 전용으로 반환한다.
-     */
     public Set<String> getTags() {
         return Collections.unmodifiableSet(tags);
     }
