@@ -2,10 +2,12 @@ package com.sprintlog.sprintlogboot.domain;
 
 
 import com.sprintlog.sprintlogboot.exception.*;
+import lombok.*;
 
 import java.io.*;
 import java.util.*;
 
+@Getter
 public abstract class LearningActivity implements Serializable {
 
     // 이 파일의 클래스 구조가 현재의 클래스와 같은지에 대한 버전 키 검사용 필드
@@ -60,47 +62,6 @@ public abstract class LearningActivity implements Serializable {
         }
     }
 
-    public void hideFromPublic() {
-        this.visibility = Visibility.PRIVATE;
-    }
-
-    public void openToPublic() {
-        this.visibility = Visibility.PUBLIC;
-    }
-
-    public static int getTotalCreateCount() {
-        return totalCreateCount;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public int getMinutes() {
-        return minutes;
-    }
-
-    public Visibility getVisibility() {
-        return visibility;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public String getVisibilityText() {
-        return this.visibility.getLabel();
-    }
-
-    public boolean isPublicActivity() {
-        return visibility == Visibility.PUBLIC;
-    }
-
-    public ActivityCategory getCategory() {
-        return category;
-    }
-
-
     public void addTag(String tag) {
         if (tag == null || tag.isBlank()) {
             throw new InvalidActivityException("태그는 비워둘 수 없습니다.");
@@ -116,8 +77,6 @@ public abstract class LearningActivity implements Serializable {
         if (tag == null) return false;
         return tags.contains(tag.trim().toLowerCase());
     }
-
-
 
 }
 

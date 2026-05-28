@@ -1,7 +1,10 @@
 package com.sprintlog.sprintlogboot.domain;
 
+import lombok.*;
+
 import java.io.*;
 
+@Getter
 public class PracticeLog extends LearningActivity implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -12,11 +15,6 @@ public class PracticeLog extends LearningActivity implements Serializable {
         super(title, minutes, visibility, ActivityCategory.PRACTICE);
         this.completionRate = normalizeCompletionRate(completionRate);
 
-    }
-
-
-    public int getCompletionRate() {
-        return completionRate;
     }
 
     private  int normalizeCompletionRate(int completionRate) {

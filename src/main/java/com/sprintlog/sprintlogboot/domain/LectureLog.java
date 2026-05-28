@@ -1,7 +1,10 @@
 package com.sprintlog.sprintlogboot.domain;
 
+import lombok.*;
+
 import java.io.*;
 
+@Getter
 public class LectureLog extends LearningActivity implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -9,7 +12,6 @@ public class LectureLog extends LearningActivity implements Serializable {
     private String instructorName;
 
     public LectureLog(String title, int minutes, Visibility visibility, String instructorName) {
-
         super(title, minutes, visibility, ActivityCategory.LECTURE);
         this.instructorName = normalizeInstructorName(instructorName);
     }
@@ -22,13 +24,8 @@ public class LectureLog extends LearningActivity implements Serializable {
         if(instructorName == null || instructorName.isBlank()) {
             return "강사 미정";
         }
-
-        return instructorName;
-
-    }
-
-    public String getInstructorName() {
         return instructorName;
     }
+
 }
 

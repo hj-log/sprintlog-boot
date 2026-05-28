@@ -1,7 +1,10 @@
 package com.sprintlog.sprintlogboot.domain;
 
+import lombok.*;
+
 import java.io.*;
 
+@Getter
 public class ReadingLog extends LearningActivity implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -12,7 +15,4 @@ public class ReadingLog extends LearningActivity implements Serializable {
         this.bookTitle = bookTitle;
     }
 
-    public String getBookTitle() {
-        return bookTitle;
-    }
 }

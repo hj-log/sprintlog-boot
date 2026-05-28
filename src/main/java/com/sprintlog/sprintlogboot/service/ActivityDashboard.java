@@ -2,25 +2,17 @@ package com.sprintlog.sprintlogboot.service;
 
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.repository.*;
+import lombok.*;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.stereotype.*;
 
 import java.util.*;
 
 @Service // 빈 등록 어노테이션. @component랑 기능은 똑같고, 계층을 좀 더 명시적으로 표시
+@RequiredArgsConstructor // final로 선언된 필드만 받는 생성자를 자동으로 만들어 줌.
 public class ActivityDashboard {
 
     private final ActivityRepository repository;
-
-    // 의존선 자동 주입 ActivityDashboard가 ActivityRepository에게 의존한고 있는 상황.
-    // 생성자를 통해 ActivityRepository를 전달 받을 때 컨테이너에서 검색하고 주입해 주겠다.
-    @Autowired
-    public ActivityDashboard(ActivityRepository repository) {
-        if (repository == null) {
-            throw new IllegalArgumentException("학습 활동 목록은 null일 수 없습니다.");
-        }
-        this.repository = repository;
-    }
 
     /**
      * 카테고리별 활동 수를 세어 Summary를 만들자.
