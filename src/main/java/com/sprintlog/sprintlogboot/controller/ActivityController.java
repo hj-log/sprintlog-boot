@@ -93,7 +93,7 @@ public class ActivityController {
     // 활동 수정. 자원 식별은 Path(/{id}), 변경할 내용은 본문(UpdateActivityRequest)
     // 대상이 없으면 404, 있으면 제목, 공개여부를 변경하고 200.
     // PutMapping은 전체적으로 수정할 때, PatchMapping은 부분 수정할 때
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<Object> update(@PathVariable Long id,
                                          @Valid @RequestBody UpdateActivityRequest request) {
 
