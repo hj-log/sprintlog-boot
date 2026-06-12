@@ -2,6 +2,7 @@ package com.sprintlog.sprintlogboot.controller;
 
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.dto.request.*;
+import com.sprintlog.sprintlogboot.exception.*;
 import com.sprintlog.sprintlogboot.repository.*;
 import com.sprintlog.sprintlogboot.service.*;
 import com.sprintlog.sprintlogboot.service.ActivityDashboard.Summary;
@@ -47,11 +48,9 @@ public class ActivityController {
 
     @GetMapping("/{id}")
     public ResponseEntity<LearningActivity> getById(@PathVariable Long id) {
-        Optional<LearningActivity> first = repository.findFirst(activity -> activity.getId() == id);
-        if(first.isPresent()) {
-          return ResponseEntity.ok().body(first.get());
-        }
-        return ResponseEntity.notFound().build();
+        LearningActivity activity = repository.findFirst(a -> a.getId() == id)
+                .orElseThrow(() -> new ActivityNotFoundException(id));
+        return ResponseEntity.ok().body(activity);
     }
 
     // 카테고리별로 그룹화된 활동 목록
@@ -98,12 +97,10 @@ public class ActivityController {
     public ResponseEntity<Object> update(@PathVariable Long id,
                                          @Valid @RequestBody UpdateActivityRequest request) {
 
-        Optional<LearningActivity> found = repository.findFirst(activity -> activity.getId() == id);
-            if (found.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
+        LearningActivity activity = repository.findFirst(a -> a.getId() == id)
+                .orElseThrow(() -> new ActivityNotFoundException(id));
 
-        LearningActivity activity = found.get();
+
         activity.changeTitle(request.title());
         if(request.visibility() == Visibility.PUBLIC) {
             activity.openToPublic();
@@ -117,9 +114,11 @@ public class ActivityController {
 
     // 활동 삭제. 성공 시 본문 없이 204 No Content, 대상이 없으면 404.
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> dalete(@PathVariable Long id) {
-        boolean isRemoved = repository.removeById(id);
-        return isRemoved ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (!repository.removeById(id)) {
+            throw new ActivityNotFoundException(id);
+        }
+        return ResponseEntity.noContent().build();
     }
 
 
@@ -135,4 +134,5 @@ public class ActivityController {
         }
         return activity;
     }
+
 }
