@@ -1,14 +1,17 @@
 package com.sprintlog.sprintlogboot.controller;
 
 import com.sprintlog.sprintlogboot.domain.*;
+import com.sprintlog.sprintlogboot.dto.request.*;
 import com.sprintlog.sprintlogboot.repository.*;
 import com.sprintlog.sprintlogboot.service.*;
 import com.sprintlog.sprintlogboot.service.ActivityDashboard.Summary;
+import jakarta.validation.*;
 import lombok.*;
 import lombok.extern.slf4j.*;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.*;
 import java.util.*;
 
 @RestController // @ResponseBody 내장되어 있음
@@ -20,16 +23,31 @@ public class ActivityController {
     private final ActivityRepository repository;
     private final ActivityDashboard dashboard;
 
-    // 모든 활동 목록
+    // 모든 활동 목록(페이징)
     @GetMapping
-    public ResponseEntity<List<LearningActivity>> getAll() {
-        List<LearningActivity> list = repository.findAll();
+    public ResponseEntity<List<LearningActivity>> getAll(
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Comparator<LearningActivity> comparator = switch (sort) {
+            case "minutes" -> Comparator.comparingInt(LearningActivity::getMinutes);
+            case "title" -> Comparator.comparing(LearningActivity::getTitle);
+            default -> Comparator.comparing(LearningActivity::getId);
+        };
+
+        List<LearningActivity> list = repository.findAll().stream()
+                .sorted(comparator)
+                .skip(page * size) // 0페이지면 0개 건너뛰고 size개, 1페이지면 size개 건너뛰고 size개
+                .limit(size)
+                .toList();
+
         return ResponseEntity.ok().body(list);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<LearningActivity> getById(@PathVariable Long id) {
-        Optional<LearningActivity> first = repository.findfirst(activity -> activity.getId() == id);
+        Optional<LearningActivity> first = repository.findFirst(activity -> activity.getId() == id);
         if(first.isPresent()) {
           return ResponseEntity.ok().body(first.get());
         }
@@ -62,4 +80,59 @@ public class ActivityController {
         return ResponseEntity.ok().body(list);
     }
 
+    // 생성(Post) / 수정(PUT) / 삭제(DELETE)
+    @PostMapping
+    public ResponseEntity<LearningActivity> create(@Valid @RequestBody CreateActivityRequest request) {
+        LearningActivity activity = toActivity(request);
+        repository.add(activity);
+
+        // 성공 시 201 created + Location 헤더(생성된 자원의 주소)를 함께 응답한다.
+        URI location = URI.create("/api/activities/" + activity.getId());
+        return ResponseEntity.created(location).body(activity);
+    }
+
+    // 활동 수정. 자원 식별은 Path(/{id}), 변경할 내용은 본문(UpdateActivityRequest)
+    // 대상이 없으면 404, 있으면 제목, 공개여부를 변경하고 200.
+    // PutMapping은 전체적으로 수정할 때, PatchMapping은 부분 수정할 때
+    @PatchMapping("/{id}")
+    public ResponseEntity<Object> update(@PathVariable Long id,
+                                         @Valid @RequestBody UpdateActivityRequest request) {
+
+        Optional<LearningActivity> found = repository.findFirst(activity -> activity.getId() == id);
+            if (found.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+        LearningActivity activity = found.get();
+        activity.changeTitle(request.title());
+        if(request.visibility() == Visibility.PUBLIC) {
+            activity.openToPublic();
+        } else {
+            activity.hideFromPublic();
+        }
+        repository.update(activity);
+        return ResponseEntity.ok().body(activity);
+    }
+
+
+    // 활동 삭제. 성공 시 본문 없이 204 No Content, 대상이 없으면 404.
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> dalete(@PathVariable Long id) {
+        boolean isRemoved = repository.removeById(id);
+        return isRemoved ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+
+    private LearningActivity toActivity(CreateActivityRequest request) {
+        LearningActivity activity = switch(request.type()) {
+            case LECTURE -> new LectureLog(request.title(),request.minutes(), request.visibility(), request.instructorName());
+            case PRACTICE -> new PracticeLog(request.title(),request.minutes(),request.visibility(),request.completionRate());
+            case READING -> new ReadingLog(request.title(),request.minutes(),request.visibility(),request.bookTitle());
+        };
+
+        if (request.tags() != null) {
+            request.tags().forEach(activity::addTag);
+        }
+        return activity;
+    }
 }

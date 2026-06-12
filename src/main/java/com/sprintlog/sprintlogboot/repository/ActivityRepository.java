@@ -3,9 +3,6 @@ package com.sprintlog.sprintlogboot.repository;
 import com.sprintlog.sprintlogboot.domain.*;
 import org.springframework.stereotype.*;
 
-import java.io.*;
-import java.nio.charset.*;
-import java.nio.file.*;
 import java.util.*;
 import java.util.function.*;
 
@@ -18,6 +15,14 @@ public class ActivityRepository {
         if(activity == null) {
             throw new IllegalArgumentException("저장할 활동은 null일 수 없습니다.");
         }
+        storage.add(activity);
+    }
+
+    public void update (LearningActivity activity) {
+        if (activity == null) {
+            throw new IllegalArgumentException("수정할 활동은 null일 수 없습니다.");
+        }
+        storage.remove(activity);
         storage.add(activity);
     }
 
@@ -39,7 +44,7 @@ public class ActivityRepository {
 
     // 조건에 맞는 첫번째 활동만 골라 변환한다.
     // Optional로 포장해서 줌 -> 그래서 포장한걸 확인하고 값을 꺼내기 -> null을 보내지 않기 위해서 Optional 사용
-    public Optional<LearningActivity> findfirst(Predicate<LearningActivity> predicate) {
+    public Optional<LearningActivity> findFirst(Predicate<LearningActivity> predicate) {
         for (LearningActivity activity : storage) {
             if(predicate.test(activity)) {
                 return Optional.of(activity);
@@ -62,6 +67,10 @@ public class ActivityRepository {
         return total;
     }
 
+    // removeIf: 조건에 맞는 객체를 리스트에서 삭제 후 true 리턴, 해당 id를 가진 활동이 없다면 false를 리턴
+    public boolean removeById(Long id) {
+        return storage.removeIf(activity -> activity.getId() == id);
+    }
 }
 
 

@@ -78,6 +78,14 @@ public abstract class LearningActivity implements Serializable {
         return tags.contains(tag.trim().toLowerCase());
     }
 
+    public void openToPublic() {
+        this.visibility = Visibility.PUBLIC;
+    }
+
+    public void hideFromPublic() {
+        this.visibility = Visibility.PRIVATE;
+    }
+
 }
 
 
