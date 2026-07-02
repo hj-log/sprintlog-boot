@@ -45,6 +45,14 @@ public abstract class LearningActivity implements Serializable {
         this.minutes += additionalMinutes;
     }
 
+    // 등록된 태그를 제거한다.
+    public boolean removeTag(String tag) {
+        if (tag == null || tag.isBlank()) {
+            return false;
+        }
+        return tags.remove(tag.trim().toLowerCase());
+    }
+
     public void changeTitle(String newTitle) {
         validateTitle(newTitle);
         this.title = newTitle;

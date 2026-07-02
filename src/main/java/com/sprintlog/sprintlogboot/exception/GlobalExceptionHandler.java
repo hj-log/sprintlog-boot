@@ -1,20 +1,26 @@
 package com.sprintlog.sprintlogboot.exception;
 
-import lombok.extern.slf4j.*;
-import org.springframework.http.*;
-import org.springframework.http.converter.*;
-import org.springframework.validation.*;
-import org.springframework.web.bind.*;
-import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.*;
-import java.util.*;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(ActivityNotFoundException.class)
-    public ProblemDetail handleNotException(ActivityNotFoundException e) {
+    public ProblemDetail handleNotFound(ActivityNotFoundException e) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
         pd.setTitle("활동을 찾을 수 없음");
         pd.setProperty("timestamp", Instant.now());
@@ -22,28 +28,29 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationException(MethodArgumentNotValidException e) {
-        // 1. 오류 결과를 담을 Map을 생성. (Key: 필드명, value: 에러 메세지)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException e) {
+
+        // 1. 오류 결과를 담을 Map을 선언합니다. (key: 필드명, value: 메시지)
         Map<String, String> errors = new HashMap<>();
 
         /*
-        // 오류 결과 보고서
+        // BindingResult: 오류 결과 보고서
         BindingResult bindingResult = e.getBindingResult();
+
+        // BindingResult에서 @Valid에 실패한 필드 목록을 불러옵니다.
         List<FieldError> fieldErrors = bindingResult.getFieldErrors();
         for (FieldError error : fieldErrors) {
             String field = error.getField();
-            String Message = error.getDefaultMessage();
-            errors.put(field, Message);
+            String message = error.getDefaultMessage();
+            errors.put(field, message);
         }
          */
-
-        e.getBindingResult().getFieldErrors().forEach(error-> {
-            errors.put(error.getField(),error.getDefaultMessage());
+        e.getBindingResult().getFieldErrors().forEach((error) -> {
+            errors.put(error.getField(), error.getDefaultMessage());
         });
 
         ProblemDetail pd
-                = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "요청 본문에 일부 필드가 유효하지 않습니다.");
-
+                = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "요청 본문의 일부 필드가 유효하지 않습니다.");
         pd.setTitle("입력 검증 실패");
         pd.setProperty("timestamp", Instant.now());
         pd.setProperty("errors", errors);
@@ -79,4 +86,5 @@ public class GlobalExceptionHandler {
         pd.setProperty("timestamp", Instant.now());
         return pd;
     }
+
 }
