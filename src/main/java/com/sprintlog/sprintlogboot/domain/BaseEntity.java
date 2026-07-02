@@ -24,7 +24,7 @@ public abstract class BaseEntity {
     private LocalDateTime createdAt;
 
     // 수정 시각 - 저장될 때마다 시각으로 갱신
-    @LastModifiedBy
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
 }
