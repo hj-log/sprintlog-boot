@@ -3,11 +3,10 @@ package com.sprintlog.sprintlogboot.controller;
 import com.sprintlog.sprintlogboot.domain.LearningActivity;
 import com.sprintlog.sprintlogboot.dto.request.AddTagRequest;
 import com.sprintlog.sprintlogboot.exception.ActivityNotFoundException;
-import com.sprintlog.sprintlogboot.repository.ActivityRepository;
+import com.sprintlog.sprintlogboot.repository.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,7 +57,7 @@ public class ActivityTagController {
 
 
     private LearningActivity findActivity(Long activityId) {
-        return repository.findFirst(a -> a.getId() == activityId)
+        return repository.findById(activityId)
                 .orElseThrow(() -> new ActivityNotFoundException(activityId));
     }
 
