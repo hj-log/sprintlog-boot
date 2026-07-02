@@ -15,6 +15,4 @@ public class AppConfig {
         return Clock.systemDefaultZone();
     }
 
-
-
 }

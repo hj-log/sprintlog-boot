@@ -3,18 +3,20 @@ package com.sprintlog.sprintlogboot.controller;
 import com.sprintlog.sprintlogboot.aspect.*;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.dto.request.UpdateActivityRequest;
-import com.sprintlog.sprintlogboot.dto.response.ActivityResponse;
+import com.sprintlog.sprintlogboot.dto.response.*;
 import com.sprintlog.sprintlogboot.exception.ActivityNotFoundException;
 import com.sprintlog.sprintlogboot.dto.request.CreateActivityRequest;
 import com.sprintlog.sprintlogboot.repository.*;
-import com.sprintlog.sprintlogboot.service.ActivityDashboard;
+import com.sprintlog.sprintlogboot.service.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.*;
 
 import java.net.URI;
 import java.util.Comparator;
@@ -26,42 +28,57 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 @RestController
 @Slf4j
 @RequiredArgsConstructor
-@RequestMapping({"/api/v3/activities", "/api/activities"}) // 경로를 둘로 받아서 기존의 요청도 해결할 수 있도록.
+@RequestMapping({"/api/v1/activities", "/api/activities"}) // 경로를 둘로 받아서 기존의 요청도 해결할 수 있도록.
 @Tag(name = "활동(Activity)", description = "학습 활동 조회, 생성, 수정, 삭제 API")
 public class ActivityController implements ActivityControllerDocs {
 
-    private final ActivityRepository repository;
     private final ActivityDashboard dashboard;
+    private final FileService fileService;
+    private final ActivityService activityService;
 
     // 모든 활동 목록(페이징)
     @GetMapping
-    public ResponseEntity<List<EntityModel<ActivityResponse>>> getAll(
+    public ResponseEntity<PagedResponse<ActivityResponse>> getAll(
             @RequestParam(defaultValue = "id") String sort,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long ownerId
     ) {
-        Comparator<LearningActivity> comparator = switch (sort) {
-            case "minutes" -> Comparator.comparingInt(LearningActivity::getMinutes);
-            case "title" -> Comparator.comparing(LearningActivity::getTitle);
-            default -> Comparator.comparing(LearningActivity::getId);
-        };
+        Page<LearningActivity> result
+                = activityService.page(sort, page, size, ownerId);
 
-
-        List<EntityModel<ActivityResponse>> list = repository.findAll().stream()
-                .sorted(comparator)
-                .skip((long) page * size) // 0페이지면 0개 건너뛰고 size개, 1페이지면 size개 건너뛰고 size개
-                .limit(size)
-                .map(this::toModel)
+        // 원본 리스트를 꺼낼 때는 getContent를 통해서 꺼낼 수 있다.
+        List<ActivityResponse> content = result.getContent().stream()
+                .map(ActivityResponse::from)
                 .toList();
 
-        return ResponseEntity.ok().body(list);
+        // 페이지 정보들까지 함께 담을 수 있는 PagedResponse를 사용해서 응답
+        return ResponseEntity.ok().body(new PagedResponse<>(content, result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages()));
     }
-    @LogExecutionTime
+
+    @GetMapping("/slice")
+    public ResponseEntity<SliceResponse<ActivityResponse>> slice(
+            @RequestParam(defaultValue = "PUBLIC") Visibility visibility,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Slice<LearningActivity> result = activityService.sliceByVisibility(visibility, page, size);
+        List<ActivityResponse> content = result.getContent().stream()
+                .map(ActivityResponse::from)
+                .toList();
+
+        return ResponseEntity.ok().body(
+                new SliceResponse<>(content, result.getNumber(), result.getSize(), result.hasNext())
+        );
+    }
+
+
+
     @GetMapping("/{id}")
+    @LogExecutionTime
     public ResponseEntity<EntityModel<ActivityResponse>> getById(@PathVariable Long id) {
-        LearningActivity activity = repository.findById(id)
-                .orElseThrow(() -> new ActivityNotFoundException(id));
-        return ResponseEntity.ok().body(toModel(activity));
+        return ResponseEntity.ok().body(toModel(activityService.get(id)));
     }
 
     // 카테고리별로 그룹화된 활동 목록
@@ -78,33 +95,24 @@ public class ActivityController implements ActivityControllerDocs {
         return ResponseEntity.ok().body(dashboard.summarize());
     }
 
-    // 태그로 활동을 필터링
-    @GetMapping("/search")
-    public ResponseEntity<List<LearningActivity>> searchByTag(@RequestParam String tag,
-                                                              @RequestParam String name,
-                                                              @RequestParam int age) {
-
-        log.info("RequestParam을 통해 얻어낸 값: {}, {}, {}", tag, name, age);
-
-        List<LearningActivity> list = dashboard.filterByTag(tag);
-        return ResponseEntity.ok()
-                .header("Deprecation", "true")
-                .header("Sunset", "Thu, 31 Dec 2026 23:59:59 GMT")
-                .header("Link",
-                        "<https://docs.sprintlog.example/guides/migration#search>; rel=\"deprecation\"")
-
-                .body(list);
-    }
-
+    // -------------------------------------------------------------------------------------
     //  변경 작업: -- 생성(POST) / 수정(PUT) / 삭제(DELETE) ---
     @PostMapping
-    public ResponseEntity<EntityModel<ActivityResponse>> create(@Valid @RequestBody CreateActivityRequest request) {
-        LearningActivity activity = toActivity(request);
-        LearningActivity save = repository.save(activity);
+    public ResponseEntity<EntityModel<ActivityResponse>> create(
+            @Valid @RequestPart("data") CreateActivityRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) {
+
+        String savedFileName = null;
+        if (file != null && !file.isEmpty()) {
+            savedFileName = fileService.saveFile(file);
+        }
+
+        LearningActivity saved = activityService.create(request, savedFileName);
 
         // 성공 시 201 Created + Location 헤더(생성된 자원의 주소)를 함께 응답한다.
-        URI location = URI.create("/api/activities/" + save.getId());
-        return ResponseEntity.created(location).body(toModel(activity));
+        URI location = URI.create("/api/activities/" + saved.getId());
+        return ResponseEntity.created(location).body(toModel(saved));
     }
 
     // 활동 수정. 자원 식별은 Path(/{id}), 변경할 내용은 본문(UpdateActivityRequest)
@@ -112,35 +120,19 @@ public class ActivityController implements ActivityControllerDocs {
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<ActivityResponse>> update(@PathVariable Long id,
                                                                 @Valid @RequestBody UpdateActivityRequest request) {
-
-        LearningActivity activity = repository.findById(id)
-                .orElseThrow(() -> new ActivityNotFoundException(id));
-
-        activity.changeTitle(request.title());
-        if (request.visibility() == Visibility.PUBLIC) {
-            activity.openToPublic();
-        } else {
-            activity.hideFromPublic();
-        }
-        // JPA가 적용된 상태에서의 update는 findById로 조회해 온 Entity를 setter로 변경
-        // 변경 후 명시적으로 save()를 호출하면 영속성 컨텍스트의 변경 감지(dirty checking)에 의해 update 쿼리가 날아감.
-        repository.save(activity);
-        return ResponseEntity.ok().body(toModel(activity));
+        return ResponseEntity.ok()
+                .body(toModel(activityService.update(id, request)));
     }
 
 
     // 활동 삭제. 성공 시 본문 없이 204 No Content, 대상이 없으면 404.
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        // 해당 id에 대한 데이터 존재 여부 확인
-        if (!repository.existsById(id)) {
-            throw new ActivityNotFoundException(id);
-        }
-        repository.deleteById(id);
+        activityService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // --- 응답 DTO + HATEOAS 링크 만들기 --------------------------------------------
+    // --- 응답 DTO + HATEOAS 링크 만들기 (필수가 아닙니다) --------------------------------------------
     private EntityModel<ActivityResponse> toModel(LearningActivity activity) {
         long id = activity.getId();
         return EntityModel.of(
@@ -151,17 +143,48 @@ public class ActivityController implements ActivityControllerDocs {
         );
     }
 
-    // 평탄화 후 — 하위 타입 생성 switch 가 사라졌다.
-    //  종류(type)와 종류별 필드를 그대로 단일 생성자에 넘기면 된다(엔티티가 category 로 구분).
-    private LearningActivity toActivity(CreateActivityRequest request) {
-        LearningActivity activity = new LearningActivity(
-                request.type(), request.title(), request.minutes(), request.visibility(),
-                request.instructorName(), request.completionRate(), request.bookTitle());
 
-        if (request.tags() != null) {
-            request.tags().forEach(activity::addTag);
-        }
-        return activity;
+    @GetMapping("/find")
+    public ResponseEntity<List<ActivityResponse>> find(
+            @RequestParam(required = false) ActivityCategory category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer minMinutes
+    ) {
+        List<ActivityResponse> dtoList = activityService.search(category, keyword, minMinutes);
+        return ResponseEntity.ok().body(dtoList);
+    }
+
+    @GetMapping("/with-details")
+    public ResponseEntity<List<ActivityResponse>> getAllWithDetails() {
+        List<ActivityResponse> list = activityService.withDetails().stream()
+                .map(ActivityResponse::from)
+                .toList();
+        return ResponseEntity.ok().body(list);
+
+    }
+
+    // 활동 변경 내역 조회 (최근순)
+    @GetMapping("/history")
+    public ResponseEntity<List<AuditLogResponse>> history() {
+        List<AuditLogResponse> list = activityService.history().stream()
+                .map(AuditLogResponse::from)
+                .toList();
+
+        return ResponseEntity.ok().body(list);
+    }
+
+    // 트랜잭션 원자성 시연 - 활동 등록 (활동 저장 + 이력 기록)을 한 트랜잭션
+    @PostMapping("/demo-atomic")
+    public ResponseEntity<String> demoAtomic(@RequestParam(defaultValue = "false") boolean fail) {
+        activityService.demoAtomicRegister(fail); // fail = true면 예외를 일부러 발생 -> 롤백
+        return ResponseEntity.ok().body("활동과 이력이 한 트랜잭션으로 저장되었습니다.");
+    }
+
+    // 트랜잭션 원자성 시연 - 활동 등록 (활동 저장 + 이력 기록)을 한 트랜잭션
+    @PostMapping("/demo-propagation")
+    public ResponseEntity<String> demoPropagation(@RequestParam(defaultValue = "false") boolean fail) {
+        activityService.demoPropagation(fail); // fail = true면 예외를 일부러 발생 -> 롤백
+        return ResponseEntity.ok().body("활동 등록을 시도했습니다. (시도 이력은 별도 트랜잭션으로 남습니다.)");
     }
 
 }

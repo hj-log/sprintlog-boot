@@ -10,14 +10,14 @@ import java.util.*;
 public record CreateActivityRequest(
 
         @Schema(description = "활동 유형", example = "LECTURE", requiredMode = Schema.RequiredMode.REQUIRED)
-        // 빈 문자열과 공백문자열 허용, null은 안됨!
+        // 빈 문자열, 공백문자열 허용 / null은 안됨!
         @NotNull(message = "활동 유형(type)은 필수입니다.")
         @JsonProperty("category")
         ActivityCategory type,
 
         @Schema(description = "학습 제목", example = "Spring Bean Scope", requiredMode = Schema.RequiredMode.REQUIRED)
-        // @NotEmpty: 공백 문자열 허용, 빈 문자열 및 null은 안됨!
-        // 빈 문자열, 공백문자열, null 모두 안됨!
+//        @NotEmpty: 공백 문자열 허용 / 빈 문자열, null은 안됨!
+        // 빈 문자열, 공백문자열 null 모두 안됨!
         @NotBlank(message = "제목은 비워둘 수 없습니다.")
         String title,
 
@@ -27,7 +27,7 @@ public record CreateActivityRequest(
         int minutes,
 
         @Schema(description = "공개 여부", example = "PUBLIC", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "공개 여부는 필수 입니다.")
+        @NotNull(message = "공개 여부는 필수입니다.")
         Visibility visibility,
 
         // 선택값들

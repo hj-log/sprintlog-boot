@@ -1,6 +1,6 @@
 package com.sprintlog.sprintlogboot.domain;
 
-// enum : 정해진 선택지를 코드의 타입으로 만드는 문법
+// enum: 정해진 선택지를 코드의 타입으로 만드는 문법
 public enum Visibility {
 
     PUBLIC("공개", true),
@@ -21,5 +21,4 @@ public enum Visibility {
     public boolean isShareable() {
         return shareable;
     }
-
 }

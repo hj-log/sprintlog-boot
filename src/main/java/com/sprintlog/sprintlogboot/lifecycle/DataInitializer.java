@@ -13,48 +13,59 @@ import org.springframework.stereotype.*;
 @Component
 @Profile("dev")
 @RequiredArgsConstructor
-@Slf4j // log라는 이름으로 SLF4J 로거 자동 생성, 출력객체
+@Slf4j // log 라는 이름으로 SLF4J 로거 자동 생성
 public class DataInitializer {
 
     private final ActivityRepository repository;
     private final SprintLogProperties properties;
-    // 우리가 직접 UserRepository 빈 등록을 하지 않았지만, Spring-Date JPA가 이미 구현체를 빈으로 등록해 놓았습니다.
+    // 우리가 직접 UserRepository 빈 등록은 하지 않았지만, Spring Data JPA가 이미 구현체를 빈으로 등록해 놓았습니다.
     private final UserRepository userRepository;
 
-    // 주입된 의존성 객체를 가지고 무언가 해야할 로직을 작성
+    // 주입된 의존성 객체를 가지고 무언가 해야 할 로직을 작성.
     @PostConstruct
     public void loadSampleData() {
 
         log.info("[lifecycle] @PostConstruct — {}", properties.getWelcomeMessage());
+        System.out.println("메롱메롱");
 
-        if (!properties.getSampleDate().isEnabled()) {
-            log.info("[lifecycle] sample-date.enabled = false - 적재 건너뜀!");
+        if (!properties.getSampleData().isEnabled()) {
+            log.info("[lifecycle] sample-data.enabled = false - 적재 건너뜀!");
             return;
         }
 
         log.info("[lifecycle] @PostConstruct — DataInitializer 가 샘플 데이터를 적재합니다.");
 
-        if (repository.count() == 0) {
-            repository.save(new LearningActivity(
-                    ActivityCategory.LECTURE, "Spring Bean Scope", 90, Visibility.PUBLIC, "이강사", null, null));
-            repository.save(new LearningActivity(
-                    ActivityCategory.PRACTICE, "@PostConstruct 실습", 60, Visibility.PUBLIC, null, 85, null));
-            repository.save(new LearningActivity(
-                    ActivityCategory.READING, "스프링 인 액션", 75, Visibility.PUBLIC, null, null, "스프링 인 액션 5판"));
-            repository.save(new LearningActivity(
-                    ActivityCategory.LECTURE, "Prototype vs Singleton", 45, Visibility.PRIVATE, "이강사", null, null));
-        }
-        log.info("[lifecycle] 샘플 데이터 적재 완료 — 총 {}개 ", repository.count());
-
         if (userRepository.count() == 0) {
-            User choon = new User("김춘식", "cnstlr@naver.com");
+            User choon = new User("김춘식", "choon@naver.com");
+            LearningActivity l1 = new LearningActivity(
+                    ActivityCategory.LECTURE, "Spring Bean Scope", 90, Visibility.PUBLIC, "이강사", null, null);
+            LearningActivity l2 = new LearningActivity(
+                    ActivityCategory.PRACTICE, "@PostConstruct 실습", 60, Visibility.PUBLIC, null, 85, null);
+            choon.getActivities().add(l1);
+            choon.getActivities().add(l2);
             userRepository.save(choon);
-            User saved = userRepository.save(new User("홍길동", "hong@naver.com"));
-            log.info("[lifecycle] User 저장 완료 - saved id = {}, createdAt = {}"
+
+
+            User hong = new User("홍길동", "hong@gmail.com");
+            LearningActivity l3 = new LearningActivity(
+                    ActivityCategory.READING, "스프링 인 액션", 75, Visibility.PUBLIC, null, null, "스프링 인 액션 5판");
+            LearningActivity l4 = new LearningActivity(
+                    ActivityCategory.LECTURE, "Prototype vs Singleton", 45, Visibility.PRIVATE, "이강사", null, null);
+            hong.getActivities().add(l3);
+            hong.getActivities().add(l4);
+
+            User saved = userRepository.save(hong);
+            log.info("[lifecycle] User 저장 완료 - saved id={}, createdAt={}"
                     , saved.getId(), saved.getCreatedAt());
+
+
         }
+
+        log.info("[lifecycle] 샘플 데이터 적재 완료 — 총 {}개", repository.count());
+
 
         log.info("[lifecycle] DB 사용자 수: {}명", userRepository.count());
+
 
     }
 

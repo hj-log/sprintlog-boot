@@ -1,10 +1,8 @@
 package com.sprintlog.sprintlogboot.aspect;
 
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.*;
+import org.aspectj.lang.annotation.*;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -63,6 +61,11 @@ public class LoggingAspect {
 
     // 이 두개의 기능을 한꺼번에 아우를 수 있는 어노테이션이 @Around
 
+
+    @AfterThrowing(pointcut = "controllerLayer()", throwing = "ex")
+    public void afterServiceThrows(JoinPoint joinPoint, Throwable ex) {
+        log.warn("[@AfterThrowing] {} 예외 발생: {}",
+                joinPoint.getSignature().toShortString(), ex.getMessage());
+    }
+
 }
-
-

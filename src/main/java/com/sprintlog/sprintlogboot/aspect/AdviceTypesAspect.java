@@ -12,8 +12,7 @@ public class AdviceTypesAspect {
 
     // 재사용 포인트컷: service 패키지(하위 포함)의 모든 메서드
     @Pointcut("execution(* com.sprintlog.sprintlogboot.service..*(..))")
-    public void serviceLayer() {
-    }
+    public void serviceLayer() {}
 
     @Before("serviceLayer()")
     public void beforeService(JoinPoint joinPoint) {
@@ -34,4 +33,5 @@ public class AdviceTypesAspect {
         log.warn("[@AfterThrowing] {} 예외 발생: {}",
                 joinPoint.getSignature().toShortString(), ex.getMessage());
     }
+
 }

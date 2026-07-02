@@ -3,7 +3,7 @@ package com.sprintlog.sprintlogboot.controller;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.dto.request.CreateActivityRequest;
 import com.sprintlog.sprintlogboot.dto.request.UpdateActivityRequest;
-import com.sprintlog.sprintlogboot.dto.response.ActivityResponse;
+import com.sprintlog.sprintlogboot.dto.response.*;
 import com.sprintlog.sprintlogboot.service.ActivityDashboard;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +18,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.*;
 
 import java.util.List;
 import java.util.Map;
@@ -31,14 +32,17 @@ public interface ActivityControllerDocs {
             description = "정렬(sort), 페이지(page), 크기(size) 쿼리파라미터로 활동 목록을 가볍게(요약) 반환한다.")
     @ApiResponse(responseCode = "200", description = "조회 성공(요약 목록)")
     @GetMapping
-    public ResponseEntity<List<EntityModel<ActivityResponse>>> getAll(
+    public ResponseEntity<PagedResponse<ActivityResponse>> getAll(
             @Parameter(description = "정렬 기준", example = "id",
                     schema = @Schema(allowableValues = {"id", "minutes", "title"}))
             @RequestParam(defaultValue = "id") String sort,
             @Parameter(description = "페이지 번호(0부터 시작)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "한 화면에 보여질 데이터 크기", example = "20")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+
+            @Parameter(description = "주인 사용자 id(선택)", example = "1")
+            @RequestParam(required = false) Long ownerId
     );
 
     @Operation(summary = "활동 단건 조회",
@@ -80,15 +84,12 @@ public interface ActivityControllerDocs {
     @RequestMapping(value = "/summary", method = RequestMethod.POST)
     public ResponseEntity<ActivityDashboard.Summary> getSummary();
 
-    // 태그로 활동을 필터링
-    @GetMapping("/search")
-    public ResponseEntity<List<LearningActivity>> searchByTag(@RequestParam String tag,
-                                                              @RequestParam String name,
-                                                              @RequestParam int age);
 
     //  변경 작업: -- 생성(POST) / 수정(PUT) / 삭제(DELETE) ---
     @PostMapping
-    public ResponseEntity<EntityModel<ActivityResponse>> create(@Valid @RequestBody CreateActivityRequest request);
+    public ResponseEntity<EntityModel<ActivityResponse>> create(
+            @Valid @RequestPart("data") CreateActivityRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file);
 
     // 활동 수정. 자원 식별은 Path(/{id}), 변경할 내용은 본문(UpdateActivityRequest)
     // 대상이 없으면 404, 있으면 제목, 공개여부를 변경하고 200.
