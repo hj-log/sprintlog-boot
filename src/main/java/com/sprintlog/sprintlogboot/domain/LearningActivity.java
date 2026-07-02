@@ -2,47 +2,76 @@ package com.sprintlog.sprintlogboot.domain;
 
 
 import com.sprintlog.sprintlogboot.exception.*;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.*;
 import java.util.*;
 
 @Getter
-public abstract class LearningActivity implements Serializable {
+@Entity
+@Table(name = "activities")
+public class LearningActivity extends BaseEntity{
 
-    // 이 파일의 클래스 구조가 현재의 클래스와 같은지에 대한 버전 키 검사용 필드
-    private static final long serialVersionUID = 1L;
-
-    private static int totalCreateCount = 0;
-
-    private final long id;
+    @Column(nullable = false)
     private String title;
-    private int minutes;
-    private Visibility visibility;
-    private final ActivityCategory category;
-    private final Set<String> tags = new HashSet<>();
 
-    public LearningActivity(String title, int minutes, Visibility visibility, ActivityCategory category) {
+    @Column(nullable = false)
+    private int minutes;
+
+    // Enum을 DB에 어떠게 넣을지를 정의 (STRING: 상수를 문자열로 변환, ORDINAL: 상수의 순서 숫자로 변환)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Visibility visibility;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ActivityCategory category;
+
+    @Column(length = 50)
+    private String instructorName; // LECTURE 전용
+
+    private Integer completionRate; // PRACTICE 전용
+
+    @Column(length = 200)
+    private String bookTitle;
+
+    // 컬렉션 자료형을 별도의 테이블로 매핑. 테이블 이름은 activity_tags, 활동 테이블과 조인할 수 있는 외래 키 이름은 activity_id
+    // ElementCollection: 활동 객체를 조회할 때 tag의 조회 방식 결정
+    // FetchType.EAGER: 활동 객체 조회 시 무조건 tags를 조인해서 같이 가져옴(그렇게 선호하지 않음)
+    // FetchType.LAZY: 활동 객체 조회 시 일단 tags는 안가져옴(조인 안함). 내가 직접 tags를 지목하면 그때 select를 통해 가져옴.
+    // 실무는 LAZY 많이 사용.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "activity_tags", joinColumns = @JoinColumn(name = "activity_id"))
+    @Column(name = "tag", nullable = false, length = 50)
+    private Set<String> tags = new HashSet<>();
+
+    protected LearningActivity() {}
+
+    public LearningActivity(ActivityCategory category, String title, int minutes, Visibility visibility,
+                            String instructorName, Integer completionRate, String bookTitle) {
         validateTitle(title);
         validateMinutes(minutes);
-        totalCreateCount++;
-        this.id = totalCreateCount;
+        this.category = category;
         this.title = title.trim(); // 좌우 공백 제거
         this.minutes = minutes;
         this.visibility = visibility;
-        this.category = category;
+        this.instructorName = normalizeInstructorName(category, instructorName);
+        this.completionRate = normalizeCompletionRate(completionRate);
+        this.bookTitle = bookTitle;
+
     }
 
-    public static int getTotalCreatedCount() {
-        return totalCreateCount;
-    }
+    /*
+    태그를 추가한다. 공백은 제거하거, 소문자로 저장한다.
+    중복 태크는 무시한다.(SET의 특징)
+     */
 
-    public void extendStudy(int additionalMinutes) {
-        if (additionalMinutes <= 0) {
-            throw new InvalidActivityException(
-                    "추가 학습 시간은 1분 이상이어야 합니다. 입력값: " + additionalMinutes);
+    public void addTag(String tag) {
+        if (tag == null || tag.isBlank()) {
+            throw new InvalidActivityException("태그는 비워둘 수 없습니다.");
         }
-        this.minutes += additionalMinutes;
+        tags.add(tag.trim().toLowerCase());
     }
 
     // 등록된 태그를 제거한다.
@@ -51,6 +80,27 @@ public abstract class LearningActivity implements Serializable {
             return false;
         }
         return tags.remove(tag.trim().toLowerCase());
+    }
+
+    /*
+    등록된 태그 목록을 읽기 전용으로 반환한다.
+     */
+    public Set<String> getTags() {
+        return Collections.unmodifiableSet(tags);
+    }
+
+    // 해당 태그가 등록되어 있는지 확인한다.
+    public boolean hasTag(String tag) {
+        if (tag == null) return false;
+        return tags.contains(tag.trim().toLowerCase());
+    }
+
+    public void extendStudy(int additionalMinutes) {
+        if (additionalMinutes <= 0) {
+            throw new InvalidActivityException(
+                    "추가 학습 시간은 1분 이상이어야 합니다. 입력값: " + additionalMinutes);
+        }
+        this.minutes += additionalMinutes;
     }
 
     public void changeTitle(String newTitle) {
@@ -70,28 +120,34 @@ public abstract class LearningActivity implements Serializable {
         }
     }
 
-    public void addTag(String tag) {
-        if (tag == null || tag.isBlank()) {
-            throw new InvalidActivityException("태그는 비워둘 수 없습니다.");
-        }
-        tags.add(tag.trim().toLowerCase());
-    }
-
-    public Set<String> getTags() {
-        return Collections.unmodifiableSet(tags);
-    }
-
-    public boolean hasTag(String tag) {
-        if (tag == null) return false;
-        return tags.contains(tag.trim().toLowerCase());
-    }
-
     public void openToPublic() {
         this.visibility = Visibility.PUBLIC;
     }
 
     public void hideFromPublic() {
         this.visibility = Visibility.PRIVATE;
+    }
+
+    // 이전 LectureLog의 정규화 로직을 흡수: 강의인데 강사명이 비면 "강사 미정"
+    private static String normalizeInstructorName(ActivityCategory category, String instructorName){
+        if (category == ActivityCategory.LECTURE && (instructorName ==null || instructorName.isBlank())) {
+            return "강사 미정";
+        }
+        return instructorName;
+    }
+
+    // 이전 PracticeLog의 정규화 로직을 흡수: 완료율은 0~100 범위로 보정(없으면 null유지)
+    private static Integer normalizeCompletionRate(Integer completionRate) {
+        if (completionRate == null) {
+            return null;
+        }
+        if (completionRate < 0) {
+            return 0;
+        }
+        if (completionRate > 100) {
+            return 100;
+        }
+        return completionRate;
     }
 
 }
