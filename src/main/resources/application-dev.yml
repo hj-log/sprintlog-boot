@@ -29,3 +29,4 @@ logging:
     # hibernate가 실제로 완성하는 SQL과 ?자리에 채워지는 바인딩 값을 함께 보기 위함.
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
