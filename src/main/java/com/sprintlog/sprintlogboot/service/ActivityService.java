@@ -10,6 +10,8 @@ import com.sprintlog.sprintlogboot.dto.response.ActivityResponse;
 import com.sprintlog.sprintlogboot.exception.ActivityNotFoundException;
 import com.sprintlog.sprintlogboot.repository.ActivityRepository;
 import com.sprintlog.sprintlogboot.repository.AuditLogRepository;
+import io.micrometer.core.annotation.*;
+import io.micrometer.core.instrument.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,12 +25,15 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true) // 클래스 레벨에 @Transactional을 설정하면 모든 메서드가 readonly 트랜잭션을 가지게 됩니다.
 public class ActivityService {
 
     private final ActivityRepository repository;
     private final AuditLogRepository auditLogRepository;
     private final AuditService auditService;
 
+    // 지표 수집기(Micrometer) - 커스텀 지표를 여기에 등록 후 증감시킨다.
+    private final MeterRegistry meterRegistry;
 
     public List<ActivityResponse> search(ActivityCategory category, String keyword, Integer minMinutes) {
 
@@ -53,6 +58,7 @@ public class ActivityService {
     }
 
 
+    @Timed(value = "sprintlog.activity.find.paging", description = "활동 조회 소요 시간(페이징)")
     public Page<LearningActivity> page(String sort, int page, int size, Long ownerId) {
         // 기존에는 정렬 기준을 Comparator로 지정했는데, JPA에서 제공하는 페이징 기능을 사용하기 위해
         // Sort 타입으로 정렬 기준을 지정
@@ -76,11 +82,23 @@ public class ActivityService {
                 .orElseThrow(() -> new ActivityNotFoundException(id));
     }
 
-
+    @Transactional
     public LearningActivity create(CreateActivityRequest request, String savedFileName) {
-        LearningActivity activity = toActivity(request);
-        activity.attachFile(savedFileName);
-        return repository.save(activity);
+        return meterRegistry.timer("sprintlog.activity.create.time").record(() -> {
+            LearningActivity activity = toActivity(request);
+            activity.attachFile(savedFileName);
+            LearningActivity saved = repository.save(activity);
+
+            // 카테고리별로 태그를 쪼개서 생성된 활동 객체의 개수를 카운팅
+            meterRegistry.counter("sprintlog.activities.created", "category", saved.getCategory().name()).increment();
+
+            // 개수가 아니라 '양'을 누적: 어떤 활동 객체이든 상관 없이 학습한 시간(분)을 누적해서 더해라.
+            meterRegistry.counter("sprintlog.study.minutes.total").increment(saved.getMinutes());
+
+
+            log.info("활동 생성 완료 id={}, category={}, title={}", saved.getId(), saved.getCategory(), saved.getTitle());
+            return saved;
+        });
     }
 
 
@@ -110,7 +128,9 @@ public class ActivityService {
         }
         // JPA가 적용된 상태에서의 update는 findById로 조회해 온 Entity를 setter로 변경
         // 변경 후 명시적으로 save()를 호출하면 영속성 컨텍스트의 변경 감지(dirty checking)에 의해 update 쿼리가 날아감
-        return repository.save(activity);
+        LearningActivity saved = repository.save(activity);
+        log.info("활동 수정 완료 id={}", saved.getId());
+        return saved;
     }
 
     @Transactional
@@ -120,6 +140,7 @@ public class ActivityService {
             throw new ActivityNotFoundException(id);
         }
         repository.deleteById(id);
+        log.info("활동 삭제 완료 id={}", id);
     }
 
     public Slice<LearningActivity> sliceByVisibility(Visibility visibility, int page, int size) {
