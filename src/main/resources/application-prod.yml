@@ -13,10 +13,10 @@ spring:
 
 sprintlog:
   welcome-message: "SprintLog Boot — PRODUCTION 환경 (운영 환경)"
-  sample-date:
+  sample-data:
     enabled: false
     count: 4
-  file-direrctory: ${SPRINTLOG_FILE_DIR:/app/upload} # 컨테이너 안 경로 (호스트 절대경로 대신)
+  file-directory: ${SPRINTLOG_FILE_DIR:/app/upload} # 컨테이너 안 경로 (호스트 절대경로 대신)
 
 # 개발 시에는 자세한 로그가 도움됨.
 logging:

@@ -7,11 +7,14 @@ import com.sprintlog.sprintlogboot.domain.Visibility;
 import com.sprintlog.sprintlogboot.dto.request.CreateActivityRequest;
 import com.sprintlog.sprintlogboot.dto.request.UpdateActivityRequest;
 import com.sprintlog.sprintlogboot.dto.response.ActivityResponse;
+import com.sprintlog.sprintlogboot.exception.ActivityArchiveException;
 import com.sprintlog.sprintlogboot.exception.ActivityNotFoundException;
 import com.sprintlog.sprintlogboot.repository.ActivityRepository;
 import com.sprintlog.sprintlogboot.repository.AuditLogRepository;
-import io.micrometer.core.annotation.*;
-import io.micrometer.core.instrument.*;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -31,6 +35,7 @@ public class ActivityService {
     private final ActivityRepository repository;
     private final AuditLogRepository auditLogRepository;
     private final AuditService auditService;
+    private final FileStorage fileStorage;
 
     // 지표 수집기(Micrometer) - 커스텀 지표를 여기에 등록 후 증감시킨다.
     private final MeterRegistry meterRegistry;
@@ -57,7 +62,6 @@ public class ActivityService {
                 .toList();
     }
 
-
     @Timed(value = "sprintlog.activity.find.paging", description = "활동 조회 소요 시간(페이징)")
     public Page<LearningActivity> page(String sort, int page, int size, Long ownerId) {
         // 기존에는 정렬 기준을 Comparator로 지정했는데, JPA에서 제공하는 페이징 기능을 사용하기 위해
@@ -75,12 +79,34 @@ public class ActivityService {
                 ? repository.findByOwnerId(ownerId, pageable)
                 : repository.findAll(pageable);
 
+
     }
 
     public LearningActivity get(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ActivityNotFoundException(id));
     }
+
+    /*
+    @Transactional
+    public LearningActivity create(CreateActivityRequest request, String savedFileName) {
+        return timer.record(() -> {
+            LearningActivity activity = toActivity(request);
+            activity.attachFile(savedFileName);
+            LearningActivity saved = repository.save(activity);
+
+            // 카테고리별로 태그를 쪼개서 생성된 활동 객체의 개수를 카운팅
+            meterRegistry.counter("sprintlog.activities.created", "category", saved.getCategory().name()).increment();
+
+            // 개수가 아니라 '양'을 누적: 어떤 활동 객체이든 상관 없이 학습한 시간(분)을 누적해서 더해라.
+            meterRegistry.counter("sprintlog.study.minutes.total").increment(saved.getMinutes());
+
+
+            log.info("활동 생성 완료 id={}, category={}, title={}", saved.getId(), saved.getCategory(), saved.getTitle());
+            return saved;
+        });
+    }
+     */
 
     @Transactional
     public LearningActivity create(CreateActivityRequest request, String savedFileName) {
@@ -101,7 +127,6 @@ public class ActivityService {
         });
     }
 
-
     // 평탄화 후 — 하위 타입 생성 switch 가 사라졌다.
     // 종류(type)와 종류별 필드를 그대로 단일 생성자에 넘기면 된다(엔티티가 category 로 구분).
     private LearningActivity toActivity(CreateActivityRequest request) {
@@ -115,7 +140,7 @@ public class ActivityService {
         return activity;
     }
 
-    @Transactional
+    @Transactional // 메서드 레벨에 트랜잭션을 걸면 클래스 레벨보다 더 우선시됩니다.
     public LearningActivity update(Long id, @Valid UpdateActivityRequest request) {
         LearningActivity activity = repository.findById(id)
                 .orElseThrow(() -> new ActivityNotFoundException(id));
@@ -135,11 +160,14 @@ public class ActivityService {
 
     @Transactional
     public void delete(Long id) {
-        // 해당 id에 대한 데이터 존재 여부 확인
-        if (!repository.existsById(id)) {
-            throw new ActivityNotFoundException(id);
-        }
+        // 첨부 파일명을 확보해야 합니다.
+        LearningActivity activity = repository.findById(id)
+                .orElseThrow(() -> new ActivityNotFoundException(id));
+        String storedName = activity.getAttachmentFileName();
+
         repository.deleteById(id);
+
+        fileStorage.deleteFile(storedName);
         log.info("활동 삭제 완료 id={}", id);
     }
 
@@ -187,6 +215,14 @@ public class ActivityService {
         }
     }
 
+    @Transactional(rollbackFor = {ActivityArchiveException.class, IOException.class})
+    public void archive(boolean fail) throws ActivityArchiveException {
+        repository.save(new LearningActivity(
+                ActivityCategory.READING, "보관 시연 활동(rollbackFor 없음)", 20, Visibility.PUBLIC, null, null, "보관용 책"));
 
-
+        if (fail) {
+            // 체크 예외 — 기본 롤백 대상이 아니다 → 위 저장은 커밋되어 남는다.
+            throw new ActivityArchiveException("보관 실패(체크 예외) — 하지만 기본 롤백은 안 된다");
+        }
+    }
 }

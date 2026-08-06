@@ -22,10 +22,10 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     // 공동 응답을 조립하는 헬퍼 메서드
-    private ProblemDetail problem(HttpStatus status, String cord, String detail, String title) {
+    private ProblemDetail problem(HttpStatus status, String code, String detail, String title) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
         pd.setTitle(title);
-        pd.setProperty("cord", cord);
+        pd.setProperty("code", code);
         pd.setProperty("timestamp", Instant.now());
         return pd;
     }

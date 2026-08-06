@@ -1,25 +1,28 @@
 package com.sprintlog.sprintlogboot.controller;
 
-import com.sprintlog.sprintlogboot.aspect.*;
+import com.sprintlog.sprintlogboot.aspect.LogExecutionTime;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.dto.request.UpdateActivityRequest;
-import com.sprintlog.sprintlogboot.dto.response.*;
-import com.sprintlog.sprintlogboot.exception.ActivityNotFoundException;
+import com.sprintlog.sprintlogboot.dto.response.ActivityResponse;
+import com.sprintlog.sprintlogboot.dto.response.AuditLogResponse;
+import com.sprintlog.sprintlogboot.dto.response.PagedResponse;
 import com.sprintlog.sprintlogboot.dto.request.CreateActivityRequest;
-import com.sprintlog.sprintlogboot.repository.*;
+import com.sprintlog.sprintlogboot.dto.response.SliceResponse;
+import com.sprintlog.sprintlogboot.exception.ActivityArchiveException;
 import com.sprintlog.sprintlogboot.service.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Slice;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +36,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 public class ActivityController implements ActivityControllerDocs {
 
     private final ActivityDashboard dashboard;
-    private final FileService fileService;
+    private final FileStorage fileService;
     private final ActivityService activityService;
 
     // 모든 활동 목록(페이징)
@@ -115,6 +118,35 @@ public class ActivityController implements ActivityControllerDocs {
         return ResponseEntity.created(location).body(toModel(saved));
     }
 
+    // 활동의 첨부 파일 보기. 우리 서버가 S3로부터 받은 임시 URL을 302로 응답하면
+    // 클라이언트 측에서 리다이렉트를 통해 S3로 재요청을 보내게 됩니다.
+    @GetMapping("/{id}/attachment")
+    public ResponseEntity<Void> attachment(@PathVariable Long id) {
+        LearningActivity activity = activityService.get(id);
+        String storedName = activity.getAttachmentFileName();
+        if (storedName == null || storedName.isBlank()) {
+            return ResponseEntity.notFound().build(); // 첨부 파일이 없는 활동
+        }
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(fileService.getFileUrl(storedName)))
+                .build();
+    }
+
+    // 첨부파일 다운로드 요청. 이것도 마찬가지로 S3로부터 전달받은 임시 URL을 302 status로 응답.
+    @GetMapping("/{id}/attachment/download")
+    public ResponseEntity<Void> downloadAttachment(@PathVariable Long id) {
+        LearningActivity activity = activityService.get(id);
+        String storedName = activity.getAttachmentFileName();
+        if (storedName == null || storedName.isBlank()) {
+            return ResponseEntity.notFound().build(); // 첨부 파일이 없는 활동
+        }
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(fileService.getDownloadUrl(storedName)))
+                .build();
+    }
+
+
+
     // 활동 수정. 자원 식별은 Path(/{id}), 변경할 내용은 본문(UpdateActivityRequest)
     // 대상이 없으면 404, 있으면 제목, 공개여부를 변경하고 200.
     @PutMapping("/{id}")
@@ -173,6 +205,16 @@ public class ActivityController implements ActivityControllerDocs {
         return ResponseEntity.ok().body(list);
     }
 
+    @GetMapping("/achievement")
+    public ResponseEntity<Map<String, Integer>> achievement(@RequestParam int goalMinutes) {
+        if (goalMinutes <= 0) {
+            throw new IllegalArgumentException("주간 목표 시간은 1분 이상이어야 합니다.");
+        }
+        int rate = dashboard.achievementRate(goalMinutes);
+        return ResponseEntity.ok().body(Map.of("goalMinutes", goalMinutes, "achievementRate", rate));
+    }
+
+
     // 트랜잭션 원자성 시연 - 활동 등록 (활동 저장 + 이력 기록)을 한 트랜잭션
     @PostMapping("/demo-atomic")
     public ResponseEntity<String> demoAtomic(@RequestParam(defaultValue = "false") boolean fail) {
@@ -186,5 +228,20 @@ public class ActivityController implements ActivityControllerDocs {
         activityService.demoPropagation(fail); // fail = true면 예외를 일부러 발생 -> 롤백
         return ResponseEntity.ok().body("활동 등록을 시도했습니다. (시도 이력은 별도 트랜잭션으로 남습니다.)");
     }
+
+    @PostMapping("/demo-rollback-default")
+    public ResponseEntity<String> demoRollbackDefault(
+            @RequestParam(defaultValue = "false") boolean fail) {
+        try {
+            activityService.archive(fail);
+            return ResponseEntity.ok("정상 보관 완료 (fail=false)");
+        } catch (ActivityArchiveException e) {
+            // 체크 예외를 여기서 받았지만 — 트랜잭션은 *이미 커밋* 되어 활동은 남아 있다.
+            return ResponseEntity.ok("체크 예외 발생했지만 기본 롤백 안 됨 → 활동 남음!: " + e.getMessage());
+        }
+    }
+
+
+
 
 }

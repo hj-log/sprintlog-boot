@@ -40,8 +40,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metric # 꼭 필요한 정보만 노출
-      base-path: /managment # 경로도 바꿔서 숨김
+        include: health, info, metrics # 꼭 필요한 정보만 노출
+      base-path: /management # 경로도 바꿔서 숨김
 
   endpoint:
     health:
@@ -69,3 +69,10 @@ sprintlog:
     enabled: true
     count: 4
   file-directory: /Users/a-/Desktop/codeit-13th-develop/sprintlog-boot/spring-upload
+
+  storage: s3
+  s3:
+    bucket: sprintlog-uploads-8917
+    region: ap-northeast-2
+    endpoint:
+    presign-minutes: 5

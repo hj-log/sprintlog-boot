@@ -1,13 +1,15 @@
 package com.sprintlog.sprintlogboot.domain;
 
-
-import com.fasterxml.jackson.annotation.*;
-import com.sprintlog.sprintlogboot.exception.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sprintlog.sprintlogboot.exception.InvalidActivityException;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.ToString;
 
-import java.io.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Entity
