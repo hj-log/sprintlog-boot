@@ -24,8 +24,7 @@ spring:
     name: sprintlog-boot
 
   profiles:
-    active: dev
-
+    active: prod
 
   servlet:
     multipart:
@@ -45,7 +44,7 @@ management:
 
   endpoint:
     health:
-      show-details: always # 개발 환경애서는 always, 운영에서는 when-authorized(허가된 사람만 가능)
+      show-details: always # 개발 환경에서는 always, 운영에서는 when-authorized(허가된 사람만 요청 가능하도록)
   info:
     env:
       enabled: true
@@ -68,11 +67,11 @@ sprintlog:
   sample-data:
     enabled: true
     count: 4
-  file-directory: /Users/a-/Desktop/codeit-13th-develop/sprintlog-boot/spring-upload
+  file-directory: /Users/stephen/Desktop/codeit-13th-develop/spring-upload
 
-  storage: s3
+  storage: local
   s3:
-    bucket: sprintlog-uploads-8917
+    bucket: sprintlog-uploads-0625
     region: ap-northeast-2
     endpoint:
     presign-minutes: 5

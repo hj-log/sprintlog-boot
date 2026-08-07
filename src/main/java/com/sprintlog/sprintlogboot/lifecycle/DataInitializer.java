@@ -1,6 +1,6 @@
 package com.sprintlog.sprintlogboot.lifecycle;
 
-import com.sprintlog.sprintlogboot.conpig.*;
+import com.sprintlog.sprintlogboot.config.*;
 import com.sprintlog.sprintlogboot.domain.*;
 import com.sprintlog.sprintlogboot.repository.*;
 import jakarta.annotation.*;

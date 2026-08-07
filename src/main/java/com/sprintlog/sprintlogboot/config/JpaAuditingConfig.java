@@ -1,4 +1,4 @@
-package com.sprintlog.sprintlogboot.conpig;
+package com.sprintlog.sprintlogboot.config;
 
 /*
  원래 @EnableJpaAuditing은 메인 클래스에 붙어 있었다. 그러면 @WebMvcTest(웹 계층만 얇게 띄우는 슬라이스 테스트)가

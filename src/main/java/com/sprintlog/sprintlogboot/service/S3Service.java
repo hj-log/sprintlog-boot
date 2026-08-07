@@ -1,6 +1,6 @@
 package com.sprintlog.sprintlogboot.service;
 
-import com.sprintlog.sprintlogboot.conpig.S3Properties;
+import com.sprintlog.sprintlogboot.config.S3Properties;
 import com.sprintlog.sprintlogboot.exception.FileStorageException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

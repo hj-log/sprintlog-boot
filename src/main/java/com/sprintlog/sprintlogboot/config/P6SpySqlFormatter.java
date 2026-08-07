@@ -1,4 +1,4 @@
-package com.sprintlog.sprintlogboot.conpig;
+package com.sprintlog.sprintlogboot.config;
 
 import com.p6spy.engine.logging.*;
 import com.p6spy.engine.spy.*;

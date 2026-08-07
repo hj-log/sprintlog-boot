@@ -1,4 +1,4 @@
-package com.sprintlog.sprintlogboot.conpig;
+package com.sprintlog.sprintlogboot.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;

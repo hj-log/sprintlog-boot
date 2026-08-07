@@ -1,4 +1,4 @@
-package com.sprintlog.sprintlogboot.conpig;
+package com.sprintlog.sprintlogboot.config;
 
 import org.springframework.boot.context.properties.*;
 import org.springframework.context.annotation.*;

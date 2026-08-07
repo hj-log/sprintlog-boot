@@ -3,7 +3,6 @@ package com.sprintlog.sprintlogboot.service;
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.sprintlog.sprintlogboot.config.S3Config;
 import com.sprintlog.sprintlogboot.config.S3Properties;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("S3Service 테스트 (S3Mock)")
 class S3ServiceTest {
 
-    static final String BUCKET = "sprintlog-uploads-8917";
+    static final String BUCKET = "sprintlog-uploads-0625";
 
     static S3MockContainer s3Mock; // 진짜 S3처럼 행동하는 로컬 서버 컨테이너
     static S3Service s3Service;

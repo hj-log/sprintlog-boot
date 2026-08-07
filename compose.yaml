@@ -7,6 +7,8 @@ services: # 실행할 여러 컨테이너들을 정의
     environment:
       POSTGRES_DB: sprintlog
       POSTGRES_PASSWORD: secret
+
+
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
