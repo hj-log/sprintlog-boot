@@ -59,6 +59,10 @@ dependencies {
     // 계정/토큰 불필요(LocalStack 은 2026-03 부터 토큰 필요) → S3 연동을 격리·재현 가능하게 테스트.
     testImplementation 'com.adobe.testing:s3mock-testcontainers:4.11.0'
 
+    // Spring Security 추가
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    testImplementation 'org.springframework.security:spring-security-test'
+
 }
 
 tasks.named('test') {

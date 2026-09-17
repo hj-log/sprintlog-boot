@@ -3,9 +3,9 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/sprintlog
-    username: sprintlog
-    password: springlog
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db:5432/sprintlog} # db: 컨테이너를 같은 네트워크로 묶고, DB 컨테이너의 이름을 db로 지을 겁니다.
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:secret}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10 # (CPU 코어 수 x 2) + 유효 디스크 수
@@ -27,10 +27,10 @@ sprintlog:
 
   storage: ${SPRINTLOG_STORAGE:s3}
   s3:
-    bucket: ${SPRINTLOG_S3_BUCKET:sprintlog-uploads-8917}
+    bucket: ${SPRINTLOG_S3_BUCKET:sprintlog-uploads-0625}
     region: ${AWS_REGION:ap-northeast-2}
     endpoint: ${SPRINTLOG_S3_ENDPOINT:}
-    presign-minutes: ${SPRINTLOG_s3_PRESIGN_MINUTES:5}
+    presign-minutes: ${SPRINTLOG_S3_PRESIGN_MINUTES:5}
 
 
 # 개발 시에는 자세한 로그가 도움됨.
