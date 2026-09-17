@@ -1,5 +1,7 @@
 package com.sprintlog.sprintlogboot.config;
 
+import com.sprintlog.sprintlogboot.filter.RequestIdFilter;
+import com.sprintlog.sprintlogboot.filter.RequestLoggingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity // 이 클래스가 웹 보안 설정
@@ -25,8 +28,11 @@ public class SecurityConfig {
 
                 // 서버로 들어오는 요청 중 어떤 요청을 허용할 것인가에 대한 설정
                 // 이 안에서 경로별 인증과 권한 체크 진행이 가능
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
 
+                // 우리 필터를 인증 처리 필터 '앞'에 끼운다.
+                .addFilterBefore(new RequestLoggingFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new RequestLoggingFilter(), RequestIdFilter.class);
         return http.build();
     }
 
